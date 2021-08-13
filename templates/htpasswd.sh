@@ -44,7 +44,7 @@ do
     kind: RoleBinding
     metadata:
       name: admin
-      namespace: user$
+      namespace: user${h}
     subjects:
     - kind: User
       name: user${h}

@@ -16,7 +16,7 @@ metadata:
   name: cluster
 spec:
   identityProviders:
-  - name: my_htpasswd_provider 
+  - name: disa_users
     mappingMethod: claim 
     type: HTPasswd
     htpasswd:

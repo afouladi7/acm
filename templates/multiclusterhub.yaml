@@ -4,4 +4,5 @@ kind: MultiClusterHub
 metadata:
   namespace: open-cluster-management
   name: multiclusterhub
-spec: {}
+spec:
+  imagePullSecret: acm

@@ -1,0 +1,162 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: etherpad
+  generation: 1
+  namespace: workshop
+  labels:
+    app: etherpad
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etherpad
+  template:
+    metadata:
+      labels:
+        app: etherpad
+    spec:
+
+      containers:
+        - resources: {}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9001
+              scheme: HTTP
+            initialDelaySeconds: 60
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 5
+          terminationMessagePath: /dev/termination-log
+          name: etherpad
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 9001
+              scheme: HTTP
+            initialDelaySeconds: 120
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: DB_DBID
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-name
+            - name: DB_HOST
+              value: etherpad-mysql
+            - name: DB_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-password
+            - name: DB_PORT
+              value: '3306'
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-user
+            - name: NODE_ENV
+              value: production
+          ports:
+            - containerPort: 9001
+              protocol: TCP
+          imagePullPolicy: Always
+          volumeMounts:
+            - name: etherpad-settings
+              mountPath: /opt/etherpad/config
+          terminationMessagePolicy: File
+          image: 'quay.io/wkulhanek/etherpad:1.7.5'
+      serviceAccount: etherpad
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  annotations:
+    deployment.kubernetes.io/revision: '1'
+    template.alpha.openshift.io/wait-for-ready: 'true'
+  name: etherpad-mysql
+  namespace: workshop
+  labels:
+    app: etherpad
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etherpad-mysql
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: etherpad-mysql
+    spec:
+      restartPolicy: Always
+      serviceAccountName: etherpad
+      schedulerName: default-scheduler
+      terminationGracePeriodSeconds: 30
+      securityContext: {}
+      containers:
+        - resources:
+            limits:
+              memory: 512Mi
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - '-i'
+                - '-c'
+                - >-
+                  MYSQL_PWD="$MYSQL_PASSWORD" mysql -h 127.0.0.1 -u $MYSQL_USER
+                  -D $MYSQL_DATABASE -e 'SELECT 1'
+            initialDelaySeconds: 5
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          terminationMessagePath: /dev/termination-log
+          name: mysql
+          livenessProbe:
+            tcpSocket:
+              port: 3306
+            initialDelaySeconds: 30
+            timeoutSeconds: 1
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          env:
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-user
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-password
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-root-password
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: etherpad-mysql
+                  key: database-name
+          ports:
+            - containerPort: 3306
+              protocol: TCP
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: etherpad-mysql-data
+              mountPath: /var/lib/mysql/data
+          terminationMessagePolicy: File
+          image: 'registry.access.redhat.com/rhscl/mysql-57-rhel7:5.7'
+      serviceAccount: etherpad

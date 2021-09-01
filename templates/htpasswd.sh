@@ -1,6 +1,7 @@
 #!/bin/bash
 
 read -p 'What is your desired amount of Openshift users? ' user
+read -p 'What would you like to name your OAuth? ' oauth
 
 for ((i=1; i<=$user; i++))
 do
@@ -21,7 +22,7 @@ metadata:
   name: cluster
 spec:
   identityProviders:
-  - name: disa_users
+  - name: ${oauth}
     mappingMethod: claim 
     type: HTPasswd
     htpasswd:
@@ -29,6 +30,10 @@ spec:
         name: htpass-secret 
 EOF
 
+while true; do
+    read -p "Do you wish to create userspaces for users? " yn
+    case $yn in
+        [Yy]* ) 
 for ((j=1; j<=$user; j++))
 do
     cat << EOF | oc apply -f -
@@ -59,4 +64,8 @@ do
       name: admin
       apiGroup: rbac.authorization.k8s.io
 EOF
+done; break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
 done

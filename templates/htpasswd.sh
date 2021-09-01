@@ -4,8 +4,13 @@ read -p 'What is your desired amount of Openshift users? ' user
 
 for ((i=1; i<=$user; i++))
 do
+if [ ! -f users.htpasswd ];then
+    htpasswd -c -B -b users.htpasswd user$i openshift
+else
     htpasswd -B -b users.htpasswd user$i openshift
+fi
 done
+
 
 oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
 

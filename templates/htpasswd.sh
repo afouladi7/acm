@@ -17,7 +17,7 @@ oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n op
 
 cat << EOF | oc apply -f -
 apiVersion: config.openshift.io/v1
-kind: OAuth
+kind: OAuth 
 metadata:
   name: cluster
 spec:
@@ -29,6 +29,17 @@ spec:
       fileData:
         name: htpass-secret 
 EOF
+
+while true; do
+    read -p "Do you wish to create admin for users? " yn
+    case $yn in
+        [Yy]* ) oc adm policy add-cluster-role-to-user cluster-admin user1
+        htpasswd -B -b users.htpasswd user1 admin
+        echo "user1 is now an admin with password: 'admin'"; break;;
+        [Nn]* ) exit;;
+        * ) echo "Please answer yes or no.";;
+    esac
+done
 
 while true; do
     read -p "Do you wish to create userspaces for users? " yn

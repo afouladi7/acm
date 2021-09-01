@@ -12,7 +12,6 @@ else
 fi
 done
 
-
 oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
 
 cat << EOF | oc apply -f -

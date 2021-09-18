@@ -3,6 +3,8 @@
 read -p 'What is your desired amount of Openshift users? ' user
 read -p 'What would you like to name your OAuth? ' oauth
 
+htpasswd -B -b users.htpasswd clusteradmin openshift > /dev/null
+
 for ((i=1; i<=$user; i++))
 do
 if [ ! -f users.htpasswd ];then
@@ -12,6 +14,7 @@ else
 fi
 done
 
+oc adm policy add-cluster-role-to-user cluster-admin clusteradmin > /dev/null
 oc create secret generic htpass-secret --from-file=htpasswd=users.htpasswd -n openshift-config
 
 cat << EOF | oc apply -f -
@@ -32,9 +35,9 @@ EOF
 while true; do
     read -p "Do you wish to create admin for users? " yn
     case $yn in
-        [Yy]* ) oc adm policy add-cluster-role-to-user cluster-admin user1
+        [Yy]* ) oc adm policy add-cluster-role-to-user admin user1
         htpasswd -B -b users.htpasswd user1 admin
-        echo "user1 is now an admin with password: 'admin'"; break;;
+        echo "user1 is now an admin with password: 'openshift'"; break;;
         [Nn]* ) exit;;
         * ) echo "Please answer yes or no.";;
     esac
